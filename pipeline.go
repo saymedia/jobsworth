@@ -65,31 +65,7 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 
 	if context.BranchName == "master" {
 
-		if context.ArtifactsFromBuildNumber != "" {
-			// Create a "synthetic" build step that uses the
-			// jobsworth-copy-artifact-meta helper program to
-			// copy the metadata keys from the given build
-			// to try to re-use its artifacts for this deployment.
-			synthStep := Step{
-				"command": fmt.Sprintf(
-					"jobsworth-copy-artifact-meta \"%s\"",
-					context.ArtifactsFromBuildNumber,
-				),
-				"label": fmt.Sprintf(
-					"Artifacts from #%s",
-					context.ArtifactsFromBuildNumber,
-				),
-			}
-			stepContext := &StepContext{
-				EnvironmentName: context.BuildEnvironment,
-				QueueName:       "plan_pipeline",
-				EmojiName:       "repeat",
-			}
-			bkSteps = append(bkSteps, bkWait)
-			bkSteps = append(bkSteps, lowerStep(
-				synthStep, context, stepContext,
-			))
-		} else {
+		if context.ArtifactsFromBuildNumber == "" {
 			if len(p.Build) > 0 {
 				stepContext := &StepContext{
 					EnvironmentName: context.BuildEnvironment,
@@ -199,13 +175,14 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) Step {
 	env["JOBSWORTH_CAUTIOUS"] = stepContext.CautiousStr()
 	env["JOBSWORTH_CODEBASE"] = context.CodebaseName()
 	env["JOBSWORTH_CODE_VERSION"] = context.CodeVersion
+	env["JOBSWORTH_SOURCE_GIT_COMMIT_ID"] = context.SourceGitCommitId
 	env["JOBSWORTH_ENVIRONMENT"] = stepContext.EnvironmentName
 
-	label, ok := step["label"].(string)
+	name, ok := step["name"].(string)
 	if !ok {
-		label = ""
+		name = ""
 	}
-	step["label"] = strings.TrimSpace(fmt.Sprintf(":%s: %s", stepContext.EmojiName, label))
+	step["name"] = strings.TrimSpace(fmt.Sprintf(":%s: %s", stepContext.EmojiName, name))
 
 	return step
 }
@@ -236,6 +213,10 @@ func interpolateStep(step Step, context *Context, stepContext *StepContext) {
 			},
 			"code_version": {
 				Value: context.CodeVersion,
+				Type:  hilAST.TypeString,
+			},
+			"source_git_commit": {
+				Value: context.SourceGitCommitId,
 				Type:  hilAST.TypeString,
 			},
 			"cautious": {

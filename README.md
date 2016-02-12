@@ -28,11 +28,11 @@ build:
 
 deploy:
   - command: make ENV=${environment} CAUTIOUS=${cautious} buildkite-deploy
-    label: ${environment}
+    name: ${environment}
 
 validation_test:
   - command: make ENV=${environment} validation-test
-    label: ${environment}
+    name: ${environment}
 
 trivial_deploy_environments:
   - QA
@@ -87,12 +87,14 @@ Using `jobsworth` in Buildkite
 
 `jobsworth` is intended to be used with Buildkite's dynamic pipeline upload
 functionality. A Buildkite pipeline that uses `jobsworth` will usually have
-only a single command step, that runs `jobsworth` and uploads the resulting
-pipeline definition into Buildkite:
+only a single command step, that runs `jobsworth`:
 
 ```
-jobsworth jobsworth.yml | buildkite-agent pipeline upload
+jobsworth jobsworth.yml
 ```
+
+If successful, `jobsworth` will set some metadata on the build and then upload
+the generated pipeline.
 
 Generating Additional Deployment Steps
 --------------------------------------
@@ -132,6 +134,8 @@ interpolated:
   in the format `YYYY-MM-DD-HHMMSS-xxxxxxx` where `xxxxxxx` is an abbreviated
   git commit id and the time/date fields are from that commit's creation
   timestamp.
+* `${source_git_commit}`: the full id of the git commit that was current
+  when `jobsworth` ran.
 * `${cautious}`: expands as `1` for "cautious" deploy steps, and `0` for
   all other steps.
 

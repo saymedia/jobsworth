@@ -1,13 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"strings"
+
+	"gopkg.in/libgit2/git2go.v22"
 )
 
 type Context struct {
 	BuildNumber                   uint64
+	BuildkitePipelineSlug         string
+	BuildkiteOrganizationSlug     string
 	BuildkiteAgentAccessToken     string
 	BuildkiteAgentEndpointURL     string
+	BuildkiteAPIAccessToken       string
 	BuildkiteJobId                string
 	BuildkiteBuildId              string
 	ConfigFilename                string
@@ -17,6 +23,7 @@ type Context struct {
 	InPullRequest                 bool
 	BuildEnvironment              string
 	CodeVersion                   string
+	SourceGitCommitId             string
 	ArtifactsFromBuildNumber      string
 	OverrideDeployEnvironmentName string
 }
@@ -27,7 +34,6 @@ type StepContext struct {
 	EmojiName       string
 	Cautious        bool
 }
-
 
 // CodebaseName tries to infer a name for the codebase from the repository
 // URL.
@@ -66,6 +72,19 @@ func (c *Context) DoMessageMagic() {
 			return
 		}
 	}
+}
+
+func (c *Context) SetGitCommit(commit *git.Commit) {
+	commitId := commit.Id()
+	commitTime := commit.Committer().When.UTC()
+
+	c.CodeVersion = fmt.Sprintf(
+		"%s-%s-%06d",
+		commitTime.Format("2006-01-02-150405"),
+		commitId.String()[:7],
+		c.BuildNumber,
+	)
+	c.SourceGitCommitId = commitId.String()
 }
 
 func (c *StepContext) CautiousStr() string {

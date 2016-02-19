@@ -96,6 +96,18 @@ jobsworth jobsworth.yml
 If successful, `jobsworth` will set some metadata on the build and then upload
 the generated pipeline.
 
+Configuration
+-------------
+
+Jobsworth interacts with both Buildkite's Agent-specific API *and* its general
+API. When running within a Buildkite job the agent configuration proceeds
+automatically via environment variables, but the `JOBSWORTH_BUILDKITE_API_TOKEN`
+must be set explicitly to a general API token in order to complete configuration.
+
+The easiest way to do this is to use the Buildkite agent's "environment" hook
+to set an additional environment variable containing this API token, which will
+then set it for all jobs run by that agent.
+
 Generating Additional Deployment Steps
 --------------------------------------
 
@@ -131,9 +143,10 @@ interpolated:
   identify the codebase. For `git@github.com:example/foo.git` this would be
   "foo".
 * `${code_version}`: a version identifier for the git commit being built,
-  in the format `YYYY-MM-DD-HHMMSS-xxxxxxx` where `xxxxxxx` is an abbreviated
-  git commit id and the time/date fields are from that commit's creation
-  timestamp.
+  in the format `YYYY-MM-DD-HHMMSS-xxxxxxx-NNNNNN` where `xxxxxxx` is an
+  abbreviatee git commit id, the time/date fields are from that commit's
+  creation timestamp, and NNNNNN is a zero-padded version of the
+  Buildkite build number.
 * `${source_git_commit}`: the full id of the git commit that was current
   when `jobsworth` ran.
 * `${cautious}`: expands as `1` for "cautious" deploy steps, and `0` for
@@ -159,12 +172,11 @@ earlier, rather than building a new one.
 `jobsworth` has special support for this. If you create a build via the
 Buildkite UI and set its message to "Roll back to #12" then the generated
 pipeline will omit the defined `smoke_test` and `build` steps and instead
-synthesize a step that runs the command `jobsworth-copy-artifact-meta 12`,
-which is expected to retrieve the relevant metadata from build 12 and copy
-it into the current build.
+copy all of the metadata with a `build:` prefix from job 12 to the current
+build.
 
 The deploy steps will then be generated as normal, allowing them to operate
-on the "stolen" artifact metadata.
+on the "stolen" metadata.
 
 Using the message as the trigger means that it will be clear in the Buildkite
 summary UI when a given job is a rollback rather than a regular deployment.

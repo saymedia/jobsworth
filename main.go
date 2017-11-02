@@ -188,5 +188,5 @@ func getCurrentGitCommit() (*git.Commit, error) {
 		return nil, err
 	}
 
-	return commitObj.(*git.Commit), nil
+	return commitObj.AsCommit()
 }

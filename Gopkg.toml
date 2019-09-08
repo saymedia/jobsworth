@@ -30,8 +30,8 @@
   revision = "3eb5226cd1c40e1788b3295b5bafb5a2fcac90a6"
 
 [[constraint]]
-  branch = "v24"
-  name = "gopkg.in/libgit2/git2go.v24"
+  branch = "v26"
+  name = "gopkg.in/libgit2/git2go.v26"
 
 [[constraint]]
   branch = "v2"

@@ -73,10 +73,10 @@
   revision = "88f656faf3f37f690df1a32515b479415e1a6769"
 
 [[projects]]
-  branch = "v24"
-  name = "gopkg.in/libgit2/git2go.v24"
+  branch = "v26"
+  name = "gopkg.in/libgit2/git2go.v26"
   packages = ["."]
-  revision = "22091886372e73de5d66168e8665775676ec13c5"
+  revision = "c9f7fd544d3991bd26c400b3c227673bcada42cc"
 
 [[projects]]
   branch = "v2"
@@ -87,6 +87,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4f8f7861ea4ed50725f0f6804d6362cc66c974093975ef22e35f8916be59877f"
+  inputs-digest = "690fe77b0f649cf5a3093d44ab58f3426fac8942496bb3ee7f3414c8b61bc2ea"
   solver-name = "gps-cdcl"
   solver-version = 1

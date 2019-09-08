@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/libgit2/git2go.v24"
+	"gopkg.in/libgit2/git2go.v26"
 )
 
 type Context struct {

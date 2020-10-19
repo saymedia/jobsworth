@@ -14,6 +14,7 @@ import (
 
 func init() {
 	gob.Register(make(map[interface{}]interface{}))
+	gob.Register(make([]interface{}, 0))
 }
 
 type Pipeline struct {

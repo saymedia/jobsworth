@@ -171,7 +171,7 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) Step {
 	env, ok := step["env"].(map[interface{}]interface{})
 	if !ok {
 		env = make(map[interface{}]interface{})
-		if inter, exists := step["wait"]; !exists {
+		if _, exists := step["wait"]; !exists {
 			step["env"] = env
 		}
 	}

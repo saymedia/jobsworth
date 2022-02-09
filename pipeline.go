@@ -171,7 +171,9 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) Step {
 	env, ok := step["env"].(map[interface{}]interface{})
 	if !ok {
 		env = make(map[interface{}]interface{})
-		step["env"] = env
+		if inter, exists := step["wait"]; !exists {
+			step["env"] = env
+		}
 	}
 	env["JOBSWORTH_CAUTIOUS"] = stepContext.CautiousStr()
 	env["JOBSWORTH_CODEBASE"] = context.CodebaseName()

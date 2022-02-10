@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -25,4 +26,29 @@ plugins:
 		t.Error("failed to parse step", step["command"])
 	}
 	deepCopyStep(step)
+}
+
+func TestWaitStep(t *testing.T) {
+	context := &Context{}
+	stepContext := &StepContext{}
+
+	step := Step{}
+	stepBytes := []byte(`
+command: foo
+`)
+	yaml.Unmarshal(stepBytes, &step)
+	step = lowerStep(step, context, stepContext)
+	if reflect.DeepEqual(step["env"], nil) {
+		t.Errorf("env should be set")
+	}
+
+	step = Step{}
+	stepBytes = []byte(`
+wait: ~
+`)
+	yaml.Unmarshal(stepBytes, &step)
+	step = lowerStep(step, context, stepContext)
+	if !reflect.DeepEqual(step["env"], nil) {
+		t.Errorf("env should not be set for a wait step")
+	}
 }

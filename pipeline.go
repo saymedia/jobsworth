@@ -163,7 +163,9 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) Step {
 	agents, ok := step["agents"].(map[interface{}]interface{})
 	if !ok {
 		agents = make(map[interface{}]interface{})
-		step["agents"] = agents
+		if _, exists := step["wait"]; !exists {
+			step["agents"] = agents
+		}
 	}
 	agents["queue"] = stepContext.QueueName
 	agents["environment"] = stepContext.EnvironmentName

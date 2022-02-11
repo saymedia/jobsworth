@@ -41,6 +41,9 @@ command: foo
 	if reflect.DeepEqual(step["env"], nil) {
 		t.Errorf("env should be set")
 	}
+	if reflect.DeepEqual(step["agents"], nil) {
+		t.Errorf("agents should be set")
+	}
 
 	step = Step{}
 	stepBytes = []byte(`
@@ -50,5 +53,8 @@ wait: ~
 	step = lowerStep(step, context, stepContext)
 	if !reflect.DeepEqual(step["env"], nil) {
 		t.Errorf("env should not be set for a wait step")
+	}
+	if !reflect.DeepEqual(step["agents"], nil) {
+		t.Errorf("agents should not be set for a wait step")
 	}
 }

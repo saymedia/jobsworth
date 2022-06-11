@@ -57,10 +57,14 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 				QueueName:       "smoke_test",
 				EmojiName:       "interrobang",
 			}
-			bkSteps = append(bkSteps, bkWait)
-			bkSteps = append(bkSteps, lowerSteps(
+			loweredSteps, err := lowerSteps(
 				p.SmokeTest, context, stepContext,
-			)...)
+			)
+			if err != nil {
+				return nil, err
+			}
+			bkSteps = append(bkSteps, bkWait)
+			bkSteps = append(bkSteps, loweredSteps...)
 		}
 	}
 
@@ -73,10 +77,14 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 					QueueName:       "build",
 					EmojiName:       "package",
 				}
-				bkSteps = append(bkSteps, bkWait)
-				bkSteps = append(bkSteps, lowerSteps(
+				loweredSteps, err := lowerSteps(
 					p.Build, context, stepContext,
-				)...)
+				)
+				if err != nil {
+					return nil, err
+				}
+				bkSteps = append(bkSteps, bkWait)
+				bkSteps = append(bkSteps, loweredSteps...)
 			}
 		}
 
@@ -101,9 +109,13 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 						QueueName:       "deploy",
 						EmojiName:       "truck",
 					}
-					bkSteps = append(bkSteps, lowerSteps(
+					loweredSteps, err := lowerSteps(
 						p.Deploy, context, stepContext,
-					)...)
+					)
+					if err != nil {
+						return nil, err
+					}
+					bkSteps = append(bkSteps, loweredSteps...)
 				}
 
 				if len(p.ValidationTest) > 0 {
@@ -114,9 +126,13 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 							QueueName:       "validation_test",
 							EmojiName:       "curly_loop",
 						}
-						bkSteps = append(bkSteps, lowerSteps(
+						loweredSteps, err := lowerSteps(
 							p.ValidationTest, context, stepContext,
-						)...)
+						)
+						if err != nil {
+							return nil, err
+						}
+						bkSteps = append(bkSteps, loweredSteps...)
 					}
 				}
 			}
@@ -138,15 +154,23 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 				// potentially add blocking steps.
 				bkSteps = append(bkSteps, bkWait)
 
-				bkSteps = append(bkSteps, lowerSteps(
+				loweredSteps, err := lowerSteps(
 					p.Deploy, context, deployContext,
-				)...)
+				)
+				if err != nil {
+					return nil, err
+				}
+				bkSteps = append(bkSteps, loweredSteps...)
 
 				if len(p.ValidationTest) > 0 {
-					bkSteps = append(bkSteps, bkWait)
-					bkSteps = append(bkSteps, lowerSteps(
+					loweredSteps, err := lowerSteps(
 						p.ValidationTest, context, validateContext,
-					)...)
+					)
+					if err != nil {
+						return nil, err
+					}
+					bkSteps = append(bkSteps, bkWait)
+					bkSteps = append(bkSteps, loweredSteps...)
 				}
 			}
 		}
@@ -155,10 +179,13 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 	return bkSteps, nil
 }
 
-func lowerStep(step Step, context *Context, stepContext *StepContext) Step {
+func lowerStep(step Step, context *Context, stepContext *StepContext) (Step, error) {
 	step = deepCopyStep(step)
 
-	interpolateStep(step, context, stepContext)
+	err := interpolateStep(step, context, stepContext)
+	if err != nil {
+		return nil, err
+	}
 
 	agents, ok := step["agents"].(map[interface{}]interface{})
 	if !ok {
@@ -189,19 +216,23 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) Step {
 	}
 	step["name"] = strings.TrimSpace(fmt.Sprintf(":%s: %s", stepContext.EmojiName, name))
 
-	return step
+	return step, nil
 }
 
-func lowerSteps(steps []Step, context *Context, stepContext *StepContext) []interface{} {
+func lowerSteps(steps []Step, context *Context, stepContext *StepContext) ([]interface{}, error) {
 	ret := make([]interface{}, len(steps))
 	for i, step := range steps {
-		ret[i] = lowerStep(step, context, stepContext)
+		loweredStep, err := lowerStep(step, context, stepContext)
+		if err != nil {
+			return nil, fmt.Errorf("step %d, %s", i, err)
+		}
+		ret[i] = loweredStep
 	}
-	return ret
+	return ret, nil
 }
 
 // Modifies a step in-place to expand all of the interpolation expressions
-func interpolateStep(step Step, context *Context, stepContext *StepContext) {
+func interpolateStep(step Step, context *Context, stepContext *StepContext) error {
 	scope := &hilAST.BasicScope{
 		VarMap: map[string]hilAST.Variable{
 			"environment": {
@@ -233,13 +264,15 @@ func interpolateStep(step Step, context *Context, stepContext *StepContext) {
 	evalConfig := &hil.EvalConfig{
 		GlobalScope: scope,
 	}
-	hil.Walk(step, func(d *hil.WalkData) error {
+	return hil.Walk(step, func(d *hil.WalkData) error {
 		result, _, err := hil.Eval(d.Root, evalConfig)
-		if err == nil {
-			d.Replace = true
-			d.ReplaceValue = result.(string)
+		if err != nil {
+			// Unfortunately, there is no way to know which field gave an error
+			return fmt.Errorf("%s %s", d.Location, err)
 		}
-		return err
+		d.Replace = true
+		d.ReplaceValue = result.(string)
+		return nil
 	})
 }
 

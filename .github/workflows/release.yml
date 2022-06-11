@@ -1,0 +1,73 @@
+# This action publishes a package after you push a tag
+# See goreleaser documentation
+# https://goreleaser.com/ci/actions/
+# https://github.com/goreleaser/goreleaser/blob/v1.9.2/www/docs/ci/actions.md
+name: Create GitHub Release
+on:
+  push:
+    # run only against tags
+    tags:
+      - '*'
+jobs:
+  goreleaser:
+    # available runners:
+    # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
+    runs-on: ubuntu-18.04
+    permissions: 
+      contents: write # for creating release
+    steps:
+      - name: set up go environment for modules off
+        run: |
+          set -eu
+          cat >> $GITHUB_ENV <<EOF
+          GO111MODULE=off
+          GOPATH=$HOME/go
+          PATH=$PATH:$HOME/go/bin
+          EOF
+      - uses: actions/checkout@v3
+        with:
+          # git fetch all branches instead of just the ref, and no --depth=1
+          # required for goreleaser build unless you use --snapshot or --skip-validate
+          fetch-depth: 0
+      - name: Fetch all tags
+        # this is needed if you use TagBody, TagSubject or TagContents in your template
+        run: git fetch --force --tags
+      - run: sudo apt-get update && sudo apt-get install -y libgit2-26 libgit2-dev # dependency of git2go
+      - uses: actions/setup-go@v3
+        with:
+          # explicitly set go version
+          # when we switch to go.mod it can automatically determine go version
+          # https://github.com/marketplace/actions/setup-go-environment#getting-go-version-from-the-gomod-file
+          go-version: '1.17.10'
+      - name: install dep # https://golang.github.io/dep/docs/FAQ.html#how-do-i-use-dep-in-ci
+        run: |
+          curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 \
+            -o $GOPATH/bin/dep && \
+            chmod +x $GOPATH/bin/dep
+        env:
+          DEP_VERSION: 0.5.4
+      - name: Cache dep ensure sources
+        uses: actions/cache@v3
+        with:
+          path: ~/depcache
+          key: dep-${{hashFiles('Gopkg.lock')}}
+          restore-keys: |
+            dep-${{hashFiles('Gopkg.lock')}}
+            dep-
+      - name: Move source to GOPATH # Remove this step when we switch from dep to modules
+        # project needs to be in GOPATH; otherwise dep ensure exits with
+        # “jobsworth is not within a known GOPATH/src”
+        # Note: I tried just symlinking, but goreleaser resolves the symlink
+        # so that go build complains since it is in $GOPATH
+        run: mkdir -p $GOPATH/src && cp -r $PWD $GOPATH/src/jobsworth
+      - run: DEPCACHEDIR=$HOME/depcache dep ensure
+        working-directory: /home/runner/go/src/jobsworth
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v3
+        with:
+          distribution: goreleaser # either 'goreleaser' (default) or 'goreleaser-pro'
+          version: ^1.9.2  # https://github.com/goreleaser/goreleaser/releases
+          args: release --debug --rm-dist
+          workdir: /home/runner/go/src/jobsworth
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

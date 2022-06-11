@@ -1,0 +1,49 @@
+name: go test, go vet, go fmt
+
+# triggers
+# https://docs.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  push:
+  pull_request:
+jobs:
+  run-tests:
+    # available runners:
+    # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
+    runs-on: ubuntu-18.04
+    steps:
+      - name: set up go environment for modules off
+        run: |
+          set -eu
+          cat >> $GITHUB_ENV <<EOF
+          GO111MODULE=off
+          GOPATH=$HOME/go
+          PATH=$PATH:$HOME/go/bin
+          EOF
+      - uses: actions/checkout@v3
+      - run: sudo apt-get update && sudo apt-get install -y libgit2-26 libgit2-dev
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.17.10'
+      - name: install dep # https://golang.github.io/dep/docs/FAQ.html#how-do-i-use-dep-in-ci
+        run: |
+          curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 \
+            -o $GOPATH/bin/dep && \
+            chmod +x $GOPATH/bin/dep
+        env:
+          DEP_VERSION: 0.5.4
+      - name: Cache dep ensure sources
+        uses: actions/cache@v3
+        with:
+          path: ~/depcache
+          key: dep-${{hashFiles('Gopkg.lock')}}
+          restore-keys: |
+            dep-${{hashFiles('Gopkg.lock')}}
+            dep-
+      - name: Link source in GOPATH # Remove this step when we switch from dep to modules
+        # project needs to be in GOPATH; otherwise dep ensure exits with
+        # “jobsworth is not within a known GOPATH/src”
+        run: mkdir -p $GOPATH/src && ln -s $PWD $GOPATH/src/jobsworth
+      - run: cd $GOPATH/src/jobsworth && DEPCACHEDIR=$HOME/depcache dep ensure
+      - run: cd $GOPATH/src/jobsworth && go test
+      - run: cd $GOPATH/src/jobsworth && go vet
+      - run: gofmt -l || { code=$?; echo Please run go fmt; exit $code; }

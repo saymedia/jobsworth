@@ -14,13 +14,27 @@ import (
 var rollbackMessageRegexp = regexp.MustCompile("^[Rr]oll\\s*back\\s+(to\\s+)?#?(\\d+)")
 var envOverrideMessageRegexp = regexp.MustCompile("^[Dd]eploy\\s*(#?(\\d+)\\s*)?(to\\s+)?(\\S+)")
 
+// variables that will be set at link time (see .goreleaser.yaml)
+var version string = "development"
+var commit string = ""
+var date string = ""
+var builtBy string = ""
+
 const bkWait = "wait"
 
 func main() {
 	var err error
+	versionFlag := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
 
 	args := flag.Args()
+
+	if *versionFlag {
+		fmt.Printf("jobsworth version %s (%s)\n", version, commit)
+		fmt.Printf("date: %s\n", date)
+		fmt.Printf("built by: %s\n", builtBy)
+		os.Exit(0)
+	}
 
 	if len(args) != 1 {
 		fmt.Fprintf(os.Stderr, "Usage: jobsworth <pipeline-file>\n\n")

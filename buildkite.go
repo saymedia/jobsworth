@@ -107,7 +107,7 @@ func (b *Buildkite) apiGET(pathParts []string) (map[string]interface{}, error) {
 		Header: http.Header{},
 		URL:    reqURL,
 	}
-	req.Header.Add("Authorization", "Bearer " + b.apiToken)
+	req.Header.Add("Authorization", "Bearer "+b.apiToken)
 
 	client := &http.Client{}
 

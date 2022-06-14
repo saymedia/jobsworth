@@ -12,8 +12,20 @@ import (
 	buildkiteAgent "github.com/buildkite/agent/agent"
 	buildkite "github.com/buildkite/agent/api"
 	"github.com/buildkite/agent/retry"
-	"gopkg.in/yaml.v2"
 )
+
+type BuildMetadataClient interface {
+	ReadOtherBuildMetadata(number string) (map[string]string, error)
+}
+
+type DryRunBuildMetadataClient struct{}
+
+func (c *DryRunBuildMetadataClient) ReadOtherBuildMetadata(number string) (map[string]string, error) {
+	otherMeta := make(map[string]string)
+	otherMeta["jobsworth:code_version"] = "dry-run-code-version"
+	otherMeta["jobsworth:source_commit_id"] = "dry-run-commit"
+	return otherMeta, nil
+}
 
 type Buildkite struct {
 	// There are two different buildkite APIs in use here.
@@ -71,9 +83,10 @@ func (b *Buildkite) WriteJobMetadata(metadata map[string]string) error {
 func (b *Buildkite) InsertPipelineSteps(steps []interface{}) error {
 	client := b.agentClient
 
-	pipelineBytes, err := yaml.Marshal(map[string]interface{}{
-		"steps": steps,
-	})
+	pipelineBytes, err := MarshalPipelineSteps(steps)
+	if err != nil {
+		return err
+	}
 
 	pipeline := &buildkite.Pipeline{
 		UUID:     buildkite.NewUUID(),

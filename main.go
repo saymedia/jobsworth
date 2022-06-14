@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gopkg.in/libgit2/git2go.v26"
+	"gopkg.in/yaml.v2"
 )
 
 var rollbackMessageRegexp = regexp.MustCompile("^[Rr]oll\\s*back\\s+(to\\s+)?#?(\\d+)")
@@ -24,6 +25,7 @@ const bkWait = "wait"
 
 func main() {
 	var err error
+	dryRun := flag.Bool("dry-run", false, "print the steps and metadata instead of uploading to BuildKite")
 	versionFlag := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
 
@@ -41,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if os.Getenv("BUILDKITE") != "true" {
+	if !*dryRun && os.Getenv("BUILDKITE") != "true" {
 		fmt.Fprintf(
 			os.Stderr, "This tool is intended to run within a BuildKite job\n\n",
 		)
@@ -65,21 +67,34 @@ func main() {
 	if os.Getenv("BUILDKITE_PULL_REQUEST") != "false" {
 		context.InPullRequest = true
 	}
-	context.BuildNumber, err = strconv.ParseUint(
-		os.Getenv("BUILDKITE_BUILD_NUMBER"), 10, 64,
-	)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "BUILDKITE_BUILD_NUMBER invalid: %s", err)
+	if buildNumberString := os.Getenv("BUILDKITE_BUILD_NUMBER"); buildNumberString != "" {
+		context.BuildNumber, err = strconv.ParseUint(
+			buildNumberString, 10, 64,
+		)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "BUILDKITE_BUILD_NUMBER invalid: %s\n", err)
+			os.Exit(1)
+		}
+	} else if !*dryRun {
+		fmt.Fprintf(os.Stderr, "BUILDKITE_BUILD_NUMBER not set: %s\n", err)
 		os.Exit(1)
 	}
 
 	if context.BuildEnvironment == "" {
-		fmt.Fprintf(os.Stderr, "JOBSWORTH_ENVIRONMENT environment variable not set\n")
-		os.Exit(1)
+		if *dryRun {
+			context.BuildEnvironment = "dry-run-default"
+		} else {
+			fmt.Fprintf(os.Stderr, "JOBSWORTH_ENVIRONMENT environment variable not set\n")
+			os.Exit(1)
+		}
 	}
 	if context.BuildkiteAPIAccessToken == "" {
-		fmt.Fprintf(os.Stderr, "JOBSWORTH_BUILDKITE_API_TOKEN environment variable not set\n")
-		os.Exit(1)
+		if *dryRun {
+			context.BuildkiteAPIAccessToken = "dry-run-default"
+		} else {
+			fmt.Fprintf(os.Stderr, "JOBSWORTH_BUILDKITE_API_TOKEN environment variable not set\n")
+			os.Exit(1)
+		}
 	}
 
 	gitCommit, err := getCurrentGitCommit()
@@ -93,21 +108,37 @@ func main() {
 	// like rolling back to an earlier artifact.
 	context.DoMessageMagic()
 
-	err = run(context)
+	err = run(context, *dryRun)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(2)
 	}
 }
 
-func run(context *Context) error {
+func run(context *Context, dryRun bool) error {
+	if dryRun {
+		buildkite := DryRunBuildMetadataClient{}
+		bkSteps, writeMetadata, err := generateSteps(context, &buildkite)
+		if err != nil {
+			return err
+		}
+		return printSteps(bkSteps, writeMetadata)
+	} else {
+		buildkite := context.Buildkite()
+		bkSteps, writeMetadata, err := generateSteps(context, buildkite)
+		if err != nil {
+			return err
+		}
+		return uploadSteps(context, buildkite, bkSteps, writeMetadata)
+	}
+}
+
+func generateSteps(context *Context, buildkite BuildMetadataClient) (
+	[]interface{}, map[string]string, error) {
 	pipeline, err := LoadPipelineFromFile(context.ConfigFilename)
 	if err != nil {
-		return fmt.Errorf("Error parsing pipeline: %s", err)
+		return nil, nil, fmt.Errorf("Error parsing pipeline: %s", err)
 	}
-
-	buildkite := context.Buildkite()
-
 	writeMetadata := map[string]string{}
 	if context.ArtifactsFromBuildNumber != "" {
 		fmt.Printf(
@@ -122,7 +153,7 @@ func run(context *Context) error {
 		// been copied from the original job.
 		otherMeta, err := buildkite.ReadOtherBuildMetadata(context.ArtifactsFromBuildNumber)
 		if err != nil {
-			return fmt.Errorf(
+			return nil, nil, fmt.Errorf(
 				"error reading job #%s metadata: %s",
 				context.ArtifactsFromBuildNumber, err,
 			)
@@ -130,14 +161,14 @@ func run(context *Context) error {
 
 		codeVersion := otherMeta["jobsworth:code_version"]
 		if codeVersion == "" {
-			return fmt.Errorf(
+			return nil, nil, fmt.Errorf(
 				"build #%s does not have a recorded code version",
 				context.ArtifactsFromBuildNumber,
 			)
 		}
 		sourceCommitId := otherMeta["jobsworth:source_commit_id"]
 		if sourceCommitId == "" {
-			return fmt.Errorf(
+			return nil, nil, fmt.Errorf(
 				"build #%s does not have a recorded source commit id",
 				context.ArtifactsFromBuildNumber,
 			)
@@ -167,16 +198,36 @@ func run(context *Context) error {
 
 	bkSteps, err := pipeline.Lower(context)
 	if err != nil {
-		return fmt.Errorf("Error lowering pipeline: %s", err)
+		return nil, nil, fmt.Errorf("Error lowering pipeline: %s", err)
 	}
 
 	writeMetadata["jobsworth:code_version"] = context.CodeVersion
 	writeMetadata["jobsworth:source_commit_id"] = context.SourceGitCommitId
-	err = buildkite.WriteJobMetadata(writeMetadata)
+	return bkSteps, writeMetadata, nil
+}
+
+func printSteps(bkSteps []interface{}, writeMetadata map[string]string) error {
+	metadataYaml, err := yaml.Marshal(writeMetadata)
+	if err != nil {
+		return fmt.Errorf("Error marshalling metadata as yaml: %s", err)
+	}
+	fmt.Printf("# job metadata\n%s\n", string(metadataYaml))
+
+	stepsYaml, err := MarshalPipelineSteps(bkSteps)
+	if err != nil {
+		return fmt.Errorf("Error marshalling steps as yaml: %s", err)
+	}
+	fmt.Printf("# pipeline\n%s", string(stepsYaml))
+	return nil
+}
+
+func uploadSteps(context *Context, buildkite *Buildkite, bkSteps []interface{}, writeMetadata map[string]string) error {
+	err := buildkite.WriteJobMetadata(writeMetadata)
 	if err != nil {
 		return fmt.Errorf("error writing job metadata: %s", err)
 	}
 
+	fmt.Fprintf(os.Stderr, "Usage: jobsworth <pipeline-file>\n\n")
 	err = buildkite.InsertPipelineSteps(bkSteps)
 	if err != nil {
 		return fmt.Errorf("error inserting new pipeline steps: %s", err)

@@ -43,6 +43,12 @@ func LoadPipelineFromFile(fn string) (*Pipeline, error) {
 	return pipeline, nil
 }
 
+func MarshalPipelineSteps(steps []interface{}) ([]byte, error) {
+	return yaml.Marshal(map[string]interface{}{
+		"steps": steps,
+	})
+}
+
 func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 	// Now we lower the configuration into Buildkite's level of abstraction,
 	// which is just a flat list of steps with sync/block points.

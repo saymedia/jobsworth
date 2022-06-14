@@ -42,6 +42,14 @@
   revision = "7272c2472f226650d19ff0ff5c309c01fdc6cffa"
 
 [[projects]]
+  digest = "1:8a8904944108cb4a6f2394e76a562fb89e61e177edcca6d6b8b9700fa92c422c"
+  name = "github.com/go-test/deep"
+  packages = ["."]
+  pruneopts = ""
+  revision = "3026925edefd8a1125321a9b7d4bce573496b35d"
+  version = "v1.0.8"
+
+[[projects]]
   branch = "master"
   digest = "1:9abc49f39e3e23e262594bb4fb70abf74c0c99e94f99153f43b143805e850719"
   name = "github.com/google/go-querystring"
@@ -161,6 +169,7 @@
     "github.com/buildkite/agent/agent",
     "github.com/buildkite/agent/api",
     "github.com/buildkite/agent/retry",
+    "github.com/go-test/deep",
     "github.com/hashicorp/hil",
     "github.com/hashicorp/hil/ast",
     "gopkg.in/libgit2/git2go.v26",

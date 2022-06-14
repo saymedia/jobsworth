@@ -1,0 +1,75 @@
+steps:
+- wait
+- agents:
+    environment: ""
+    queue: smoke_test
+  command: echo test
+  env:
+    JOBSWORTH_CAUTIOUS: "0"
+    JOBSWORTH_CODE_VERSION: ""
+    JOBSWORTH_CODEBASE: ""
+    JOBSWORTH_ENVIRONMENT: ""
+    JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
+  name: ':interrobang:'
+- wait
+- agents:
+    environment: ""
+    queue: build
+  command: echo build
+  env:
+    JOBSWORTH_CAUTIOUS: "0"
+    JOBSWORTH_CODE_VERSION: ""
+    JOBSWORTH_CODEBASE: ""
+    JOBSWORTH_ENVIRONMENT: ""
+    JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
+  name: ':package:'
+- wait
+- agents:
+    environment: dev
+    queue: deploy
+  command: deploy
+  env:
+    ENVIRONMENT: dev
+    JOBSWORTH_CAUTIOUS: "0"
+    JOBSWORTH_CODE_VERSION: ""
+    JOBSWORTH_CODEBASE: ""
+    JOBSWORTH_ENVIRONMENT: dev
+    JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
+  name: ':truck:'
+- wait
+- agents:
+    environment: dev
+    queue: validation_test
+  command: integrationtest
+  env:
+    JOBSWORTH_CAUTIOUS: "0"
+    JOBSWORTH_CODE_VERSION: ""
+    JOBSWORTH_CODEBASE: ""
+    JOBSWORTH_ENVIRONMENT: dev
+    JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
+  name: ':curly_loop:'
+- wait
+- agents:
+    environment: prod
+    queue: deploy
+  command: deploy
+  env:
+    ENVIRONMENT: prod
+    JOBSWORTH_CAUTIOUS: "1"
+    JOBSWORTH_CODE_VERSION: ""
+    JOBSWORTH_CODEBASE: ""
+    JOBSWORTH_ENVIRONMENT: prod
+    JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
+  name: ':truck:'
+- wait
+- agents:
+    environment: prod
+    queue: validation_test
+  command: integrationtest
+  env:
+    JOBSWORTH_CAUTIOUS: "0"
+    JOBSWORTH_CODE_VERSION: ""
+    JOBSWORTH_CODEBASE: ""
+    JOBSWORTH_ENVIRONMENT: prod
+    JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
+  name: ':curly_loop:'

@@ -1,0 +1,13 @@
+steps:
+- wait
+- agents:
+    environment: ""
+    queue: smoke_test
+  command: echo test
+  env:
+    JOBSWORTH_CAUTIOUS: "0"
+    JOBSWORTH_CODE_VERSION: ""
+    JOBSWORTH_CODEBASE: ""
+    JOBSWORTH_ENVIRONMENT: ""
+    JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
+  name: ':interrobang:'

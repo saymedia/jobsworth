@@ -1,0 +1,19 @@
+smoke_test:
+- command: echo test
+
+build:
+- command: echo build
+
+deploy:
+- command: deploy
+  env:
+    ENVIRONMENT: ${environment}
+
+validation_test:
+- command: integrationtest
+
+trivial_deploy_environments:
+- dev
+
+cautious_deploy_environments:
+- prod

@@ -1,11 +1,12 @@
 package main
 
 import (
+	"github.com/go-test/deep"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
-
-	"gopkg.in/yaml.v2"
 )
 
 func TestDeepCopyStep(t *testing.T) {
@@ -103,4 +104,43 @@ func TestInterpolateUnknownVariable(t *testing.T) {
 	if !strings.Contains(err.Error(), "unknown variable accessed: badvar") {
 		t.Error("message should say something about bad varaible", err.Error())
 	}
+}
+
+func testGenerateSteps(t *testing.T, isMaster bool, sourcePath, expectedPath string) {
+	context := Context{
+		ConfigFilename: sourcePath,
+	}
+	if isMaster {
+		context.BranchName = "master"
+	}
+	buildkite := DryRunBuildMetadataClient{}
+	bkSteps, _, err := generateSteps(&context, &buildkite)
+	if err != nil {
+		t.Error("generateSteps returned err:", err)
+	}
+	bkStepsMarshalled, err := MarshalPipelineSteps(bkSteps)
+	if err != nil {
+		t.Error("marshal returned err:", err)
+	}
+	expectedBytes, err := ioutil.ReadFile(expectedPath)
+	if err != nil {
+		t.Error("reading expected file error", err)
+	}
+	var expected, actual interface{}
+	err = yaml.Unmarshal(bkStepsMarshalled, &actual)
+	if err != nil {
+		t.Error("parsing expected marshalled error", err)
+	}
+	err = yaml.Unmarshal(expectedBytes, &expected)
+	if err != nil {
+		t.Error("parsing expected file error", err)
+	}
+	if diff := deep.Equal(expected, actual); diff != nil {
+		t.Error(diff, string(bkStepsMarshalled))
+	}
+}
+
+func TestGenerateSnapshots(t *testing.T) {
+	testGenerateSteps(t, false, "testdata/basic.in.yaml", "testData/basic_non_master.out.yaml")
+	testGenerateSteps(t, true, "testdata/basic.in.yaml", "testData/basic_master.out.yaml")
 }

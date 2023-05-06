@@ -1,5 +1,2 @@
 # goreleaser build output
 dist/
-
-# vendor dir created by dep
-vendor/

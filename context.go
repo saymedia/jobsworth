@@ -33,6 +33,8 @@ type StepContext struct {
 	QueueName       string
 	EmojiName       string
 	Cautious        bool
+	// use concurrency and concurrency_group to force only one to run at a time
+	PreventConcurrency bool
 }
 
 // CodebaseName tries to infer a name for the codebase from the repository

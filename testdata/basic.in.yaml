@@ -8,6 +8,10 @@ deploy:
 - command: deploy
   env:
     ENVIRONMENT: ${environment}
+- name: should not overwrite custom concurrency_group
+  command: b
+  concurrency_group: custom-group
+  concurrency: 2
 
 validation_test:
 - command: integrationtest

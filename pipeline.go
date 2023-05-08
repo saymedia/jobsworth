@@ -111,9 +111,10 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 				// concurrently
 				for _, envName := range trivialEnvs {
 					stepContext := &StepContext{
-						EnvironmentName: envName,
-						QueueName:       "deploy",
-						EmojiName:       "truck",
+						EnvironmentName:    envName,
+						QueueName:          "deploy",
+						EmojiName:          "truck",
+						PreventConcurrency: true,
 					}
 					loweredSteps, err := lowerSteps(
 						p.Deploy, context, stepContext,
@@ -128,9 +129,10 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 					bkSteps = append(bkSteps, bkWait)
 					for _, envName := range trivialEnvs {
 						stepContext := &StepContext{
-							EnvironmentName: envName,
-							QueueName:       "validation_test",
-							EmojiName:       "curly_loop",
+							EnvironmentName:    envName,
+							QueueName:          "validation_test",
+							EmojiName:          "curly_loop",
+							PreventConcurrency: true,
 						}
 						loweredSteps, err := lowerSteps(
 							p.ValidationTest, context, stepContext,
@@ -145,15 +147,17 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 
 			for _, envName := range cautiousEnvs {
 				deployContext := &StepContext{
-					EnvironmentName: envName,
-					QueueName:       "deploy",
-					EmojiName:       "truck",
-					Cautious:        true,
+					EnvironmentName:    envName,
+					QueueName:          "deploy",
+					EmojiName:          "truck",
+					Cautious:           true,
+					PreventConcurrency: true,
 				}
 				validateContext := &StepContext{
-					EnvironmentName: envName,
-					QueueName:       "validation_test",
-					EmojiName:       "curly_loop",
+					EnvironmentName:    envName,
+					QueueName:          "validation_test",
+					EmojiName:          "curly_loop",
+					PreventConcurrency: true,
 				}
 
 				// Manual deploys run sequentially, so that they can
@@ -221,6 +225,12 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) (Step, err
 		name = ""
 	}
 	step["name"] = strings.TrimSpace(fmt.Sprintf(":%s: %s", stepContext.EmojiName, name))
+
+	if stepContext.PreventConcurrency &&
+		step["concurrency"] == nil && step["concurrency_group"] == nil {
+		step["concurrency_group"] = fmt.Sprintf("%s/%s", stepContext.EnvironmentName, context.BuildkitePipelineSlug)
+		step["concurrency"] = 1
+	}
 
 	return step, nil
 }

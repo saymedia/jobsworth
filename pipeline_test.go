@@ -108,7 +108,8 @@ func TestInterpolateUnknownVariable(t *testing.T) {
 
 func testGenerateSteps(t *testing.T, isMaster bool, sourcePath, expectedPath string) {
 	context := Context{
-		ConfigFilename: sourcePath,
+		ConfigFilename:        sourcePath,
+		BuildkitePipelineSlug: "myrepo",
 	}
 	if isMaster {
 		context.BranchName = "master"
@@ -141,6 +142,6 @@ func testGenerateSteps(t *testing.T, isMaster bool, sourcePath, expectedPath str
 }
 
 func TestGenerateSnapshots(t *testing.T) {
-	testGenerateSteps(t, false, "testdata/basic.in.yaml", "testData/basic_non_master.out.yaml")
-	testGenerateSteps(t, true, "testdata/basic.in.yaml", "testData/basic_master.out.yaml")
+	testGenerateSteps(t, false, "testdata/basic.in.yaml", "testdata/basic_non_master.out.yaml")
+	testGenerateSteps(t, true, "testdata/basic.in.yaml", "testdata/basic_master.out.yaml")
 }

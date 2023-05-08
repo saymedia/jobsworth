@@ -28,6 +28,8 @@ steps:
     environment: dev
     queue: deploy
   command: deploy
+  concurrency: 1
+  concurrency_group: dev/myrepo
   env:
     ENVIRONMENT: dev
     JOBSWORTH_CAUTIOUS: "0"
@@ -36,11 +38,26 @@ steps:
     JOBSWORTH_ENVIRONMENT: dev
     JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
   name: ':truck:'
+- agents:
+    environment: dev
+    queue: deploy
+  command: b
+  concurrency: 2
+  concurrency_group: custom-group
+  env:
+    JOBSWORTH_CAUTIOUS: "0"
+    JOBSWORTH_CODE_VERSION: ""
+    JOBSWORTH_CODEBASE: ""
+    JOBSWORTH_ENVIRONMENT: dev
+    JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
+  name: ':truck: should not overwrite custom concurrency_group'
 - wait
 - agents:
     environment: dev
     queue: validation_test
   command: integrationtest
+  concurrency: 1
+  concurrency_group: dev/myrepo
   env:
     JOBSWORTH_CAUTIOUS: "0"
     JOBSWORTH_CODE_VERSION: ""
@@ -53,6 +70,8 @@ steps:
     environment: prod
     queue: deploy
   command: deploy
+  concurrency: 1
+  concurrency_group: prod/myrepo
   env:
     ENVIRONMENT: prod
     JOBSWORTH_CAUTIOUS: "1"
@@ -61,11 +80,26 @@ steps:
     JOBSWORTH_ENVIRONMENT: prod
     JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
   name: ':truck:'
+- agents:
+    environment: prod
+    queue: deploy
+  command: b
+  concurrency: 2
+  concurrency_group: custom-group
+  env:
+    JOBSWORTH_CAUTIOUS: "1"
+    JOBSWORTH_CODE_VERSION: ""
+    JOBSWORTH_CODEBASE: ""
+    JOBSWORTH_ENVIRONMENT: prod
+    JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
+  name: ':truck: should not overwrite custom concurrency_group'
 - wait
 - agents:
     environment: prod
     queue: validation_test
   command: integrationtest
+  concurrency: 1
+  concurrency_group: prod/myrepo
   env:
     JOBSWORTH_CAUTIOUS: "0"
     JOBSWORTH_CODE_VERSION: ""

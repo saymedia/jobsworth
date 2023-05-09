@@ -46,4 +46,4 @@ jobs:
       - run: cd $GOPATH/src/jobsworth && DEPCACHEDIR=$HOME/depcache dep ensure
       - run: cd $GOPATH/src/jobsworth && go test
       - run: cd $GOPATH/src/jobsworth && go vet
-      - run: gofmt -l || { code=$?; echo Please run go fmt; exit $code; }
+      - run: gofmt -l . || { code=$?; echo Please run go fmt; exit $code; }

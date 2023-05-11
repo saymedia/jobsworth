@@ -5,21 +5,57 @@
 before:
   hooks:
     - pwd
+env:
+  # define env vars so we can refer to them in {{ index .Env ... }} below
+  # For the names of the cross compilers in the goreleaser-cross image, see
+  # https://github.com/goreleaser/goreleaser-cross/tree/v1.20.4#supported-toolchainsplatforms
+  - CC_darwin_amd64=o64-clang
+  - CCX_darwin_amd64=o64-clang++
+  - CC_darwin_arm64=oa64-clang
+  - CCX_darwin_arm64=oa64-clang++
+  - CC_linux_amd64=x86_64-linux-gnu-gcc
+  - CCX_linux_amd64=x86_64-linux-gnu-g++
+  - CC_linux_arm64=aarch64-linux-gnu-gcc
+  - CCX_linux_arm64=aarch64-linux-gnu-g++
 builds:
-  - env:
-      - CGO_ENABLED=1
-    goos:
-      - linux
-    goarch:
-      - amd64
+  - binary: jobsworth
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    # -tags=static: use staticically linked git2go
+    # https://github.com/libgit2/git2go/tree/v34.0.0#main-branch-or-vendored-static-linking
+    # to debug, add -v, -x
+    flags: [-tags=static, -trimpath]
+    hooks:
+      pre:
+        # Fix for exec: "pkg-config": executable file not found in $PATH
+        # Since goreleaser-cross docker image does not contain pkg-config,
+        # we install a fake pkg-config and then add the CGO_CFLAGS and CGO_LDFLAGS manually below
+        - bash -c "echo '#!/bin/bash' > /usr/local/bin/pkg-config && chmod +x /usr/local/bin/pkg-config"
+        - make --debug libgit2
     ldflags:
       # By default, goreleaser adds -s -w to remove the symbols and debugging information
       # https://github.com/goreleaser/goreleaser/blob/v1.9.2/www/docs/customization/build.md#builds
-      # but jobsworth is only 10MB so that is negligible for us so we take out those flags
+      # but jobsworth is only 13MB so that is negligible for us so we take out those flags
       - -X main.version={{.Version}}
       - -X main.commit={{.Commit}}
       - -X main.date={{.Date}}
       - -X main.builtBy=goreleaser
+    env:
+      - CGO_ENABLED=1
+      # Based on documentation example using templates on environment variables:
+      # https://goreleaser.com/customization/builds/#complex-template-environment-variables
+      - 'CC={{ index .Env (print "CC_" .Os "_" .Arch) }}'
+      - 'CCX={{ index .Env (print "CCX_" .Os "_" .Arch) }}'
+      # this is used by Makefile so it is relative to jobsworth
+      - 'LIBGIT2_STATIC_BUILD_DIR=git2go/static-build-{{ .Os }}-{{ .Arch }}'
+      # Fix for exec: "pkg-config": executable file not found in $PATH
+      # Since goreleaser-cross docker image does not contain pkg-config,
+      # we install a fake pkg-config above and define CGO_CFLAGS and CGO_LDFLAGS
+      # to replicate the pkg-config call:
+      # https://github.com/libgit2/git2go/blob/v34.0.0/Build_bundled_static.go#L9
+      - CGO_CFLAGS_DISALLOW=pkg-config.*
+      - 'CGO_CFLAGS=-I{{ .Env.PWD }}/git2go/static-build-{{ .Os }}-{{ .Arch }}/install/include'
+      - 'CGO_LDFLAGS=-L{{ .Env.PWD }}/git2go/static-build-{{ .Os }}-{{ .Arch }}/install/lib -lgit2'
 archives:
   - format: zip
     # Hack to exclude extra files such as readme
@@ -34,3 +70,8 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+
+universal_binaries:
+  - id: jobsworth-darwin-universal
+    replace: true
+    name_template: jobsworth

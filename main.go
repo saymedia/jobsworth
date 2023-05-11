@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/libgit2/git2go.v26"
+	"github.com/libgit2/git2go/v34"
 	"gopkg.in/yaml.v2"
 )
 

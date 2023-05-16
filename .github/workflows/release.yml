@@ -25,9 +25,7 @@ jobs:
       - name: Fetch all tags
         # this is needed if you use TagBody, TagSubject or TagContents in your template
         run: git fetch --force --tags
-      - name: setup release environment for make release
-        # copied from https://github.com/goreleaser/goreleaser-cross-example/blob/a5a2d67e191918dbe322589d66586f67e8a66914/.github/workflows/release.yaml#L21
-        run: |-
-          echo 'GITHUB_TOKEN=${{secrets.GITHUB_TOKEN}}' > .release-env
       - name: release publish
         run: make release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -35,6 +35,7 @@ cross-build:
 
 # based on
 # https://github.com/goreleaser/goreleaser-cross-example/blob/a5a2d67e191918dbe322589d66586f67e8a66914/Makefile#L15-L25
+# but with --debug to diagnose CFLAGS problems
 # This target calls back to make libgit2 from within docker
 .PHONY: release-dry-run
 release-dry-run:
@@ -50,17 +51,15 @@ release-dry-run:
 
 # based on
 # https://github.com/goreleaser/goreleaser-cross-example/blob/a5a2d67e191918dbe322589d66586f67e8a66914/Makefile#L27-L42
+# but simplified without --env-file since we are not worried
+# about leaking environment variables to other users of the machine.
 # This target calls back to make libgit2 from within docker
 .PHONY: release
 release:
-	@if [ ! -f ".release-env" ]; then \
-		echo "\033[91m.release-env is required for release\033[0m";\
-		exit 1;\
-	fi
 	docker run \
 		--rm \
-		-e CGO_ENABLED=1 \
-		--env-file .release-env \
+		--env=CGO_ENABLED=1 \
+		--env=GITHUB_TOKEN \
 		-v `pwd`:/go/src/${PACKAGE_NAME} \
 		-v `pwd`/sysroot:/sysroot \
 		-w /go/src/${PACKAGE_NAME} \

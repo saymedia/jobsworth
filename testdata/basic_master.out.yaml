@@ -38,6 +38,8 @@ steps:
     JOBSWORTH_ENVIRONMENT: dev
     JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
   name: ':truck:'
+- name: ':truck:'
+  wait: null
 - agents:
     environment: dev
     queue: deploy
@@ -80,6 +82,8 @@ steps:
     JOBSWORTH_ENVIRONMENT: prod
     JOBSWORTH_SOURCE_GIT_COMMIT_ID: ""
   name: ':truck:'
+- name: ':truck:'
+  wait: null
 - agents:
     environment: prod
     queue: deploy

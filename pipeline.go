@@ -226,7 +226,7 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) (Step, err
 	}
 	step["name"] = strings.TrimSpace(fmt.Sprintf(":%s: %s", stepContext.EmojiName, name))
 
-	if stepContext.PreventConcurrency &&
+	if step["command"] != nil && stepContext.PreventConcurrency &&
 		step["concurrency"] == nil && step["concurrency_group"] == nil {
 		step["concurrency_group"] = fmt.Sprintf("%s/%s", stepContext.EnvironmentName, context.BuildkitePipelineSlug)
 		step["concurrency"] = 1

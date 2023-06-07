@@ -8,6 +8,7 @@ deploy:
 - command: deploy
   env:
     ENVIRONMENT: ${environment}
+- wait: # concurrency should NOT be added to wait step
 - name: should not overwrite custom concurrency_group
   command: b
   concurrency_group: custom-group

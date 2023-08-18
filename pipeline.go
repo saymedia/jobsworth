@@ -132,7 +132,6 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 							EnvironmentName:    envName,
 							QueueName:          "validation_test",
 							EmojiName:          "curly_loop",
-							PreventConcurrency: true,
 						}
 						loweredSteps, err := lowerSteps(
 							p.ValidationTest, context, stepContext,
@@ -157,7 +156,6 @@ func (p *Pipeline) Lower(context *Context) ([]interface{}, error) {
 					EnvironmentName:    envName,
 					QueueName:          "validation_test",
 					EmojiName:          "curly_loop",
-					PreventConcurrency: true,
 				}
 
 				// Manual deploys run sequentially, so that they can

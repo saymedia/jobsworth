@@ -59,6 +59,9 @@ steps:
     environment: dev
     queue: validation_test
   command: integrationtest
+  concurrency: 1
+  concurrency_group: dev/myrepo
+  concurrency_method: eager
   env:
     JOBSWORTH_CAUTIOUS: "0"
     JOBSWORTH_CODE_VERSION: ""
@@ -102,6 +105,9 @@ steps:
     environment: prod
     queue: validation_test
   command: integrationtest
+  concurrency: 1
+  concurrency_group: prod/myrepo
+  concurrency_method: eager
   env:
     JOBSWORTH_CAUTIOUS: "0"
     JOBSWORTH_CODE_VERSION: ""

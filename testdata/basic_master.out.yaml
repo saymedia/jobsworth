@@ -30,6 +30,7 @@ steps:
   command: deploy
   concurrency: 1
   concurrency_group: dev/myrepo
+  concurrency_method: eager
   env:
     ENVIRONMENT: dev
     JOBSWORTH_CAUTIOUS: "0"
@@ -60,6 +61,7 @@ steps:
   command: integrationtest
   concurrency: 1
   concurrency_group: dev/myrepo
+  concurrency_method: eager
   env:
     JOBSWORTH_CAUTIOUS: "0"
     JOBSWORTH_CODE_VERSION: ""
@@ -74,6 +76,7 @@ steps:
   command: deploy
   concurrency: 1
   concurrency_group: prod/myrepo
+  concurrency_method: eager
   env:
     ENVIRONMENT: prod
     JOBSWORTH_CAUTIOUS: "1"
@@ -104,6 +107,7 @@ steps:
   command: integrationtest
   concurrency: 1
   concurrency_group: prod/myrepo
+  concurrency_method: eager
   env:
     JOBSWORTH_CAUTIOUS: "0"
     JOBSWORTH_CODE_VERSION: ""

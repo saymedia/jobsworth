@@ -230,6 +230,9 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) (Step, err
 		step["concurrency"] == nil && step["concurrency_group"] == nil {
 		step["concurrency_group"] = fmt.Sprintf("%s/%s", stepContext.EnvironmentName, context.BuildkitePipelineSlug)
 		step["concurrency"] = 1
+		if step["concurrency_method"] == nil {
+			step["concurrency_method"] = "eager"
+		}
 	}
 
 	return step, nil

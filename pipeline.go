@@ -203,18 +203,17 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) (Step, err
 	}
 	step["name"] = strings.TrimSpace(fmt.Sprintf(":%s: %s", stepContext.EmojiName, name))
 
-	// Block steps must not contains agents or env, so we return early here
-	_, isBlockStep := step["block"]
-	if isBlockStep {
+	// Block and wait steps must not contains agents or env, so we return early here
+	_, hasBlockStep := step["block"]
+	_, hasWaitStep := step["wait"]
+	if hasBlockStep || hasWaitStep {
 		return step, nil
 	}
 
 	agents, ok := step["agents"].(map[interface{}]interface{})
 	if !ok {
 		agents = make(map[interface{}]interface{})
-		if _, exists := step["wait"]; !exists {
-			step["agents"] = agents
-		}
+		step["agents"] = agents
 	}
 	agents["queue"] = stepContext.QueueName
 	agents["environment"] = stepContext.EnvironmentName
@@ -222,9 +221,7 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) (Step, err
 	env, ok := step["env"].(map[interface{}]interface{})
 	if !ok {
 		env = make(map[interface{}]interface{})
-		if _, exists := step["wait"]; !exists {
-			step["env"] = env
-		}
+		step["env"] = env
 	}
 
 	env["JOBSWORTH_CAUTIOUS"] = stepContext.CautiousStr()

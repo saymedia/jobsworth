@@ -67,6 +67,29 @@ wait: ~
 	}
 }
 
+func TestBlockStep(t *testing.T) {
+	context := &Context{}
+	stepContext := &StepContext{}
+
+	step := Step{}
+	stepBytes := []byte(`
+block: ~
+name: "my block"
+if: 1 == 1
+`)
+	yaml.Unmarshal(stepBytes, &step)
+	step, err := lowerStep(step, context, stepContext)
+	if err != nil {
+		t.Error("lowerStep returned err:", err)
+	}
+	if !reflect.DeepEqual(step["env"], nil) {
+		t.Errorf("env should not be set for a wait step")
+	}
+	if !reflect.DeepEqual(step["agents"], nil) {
+		t.Errorf("agents should not be set for a wait step")
+	}
+}
+
 func TestInterpolate(t *testing.T) {
 	context := &Context{}
 	stepContext := &StepContext{

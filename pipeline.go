@@ -204,9 +204,9 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) (Step, err
 	step["name"] = strings.TrimSpace(fmt.Sprintf(":%s: %s", stepContext.EmojiName, name))
 
 	// Block and wait steps must not contains agents or env, so we return early here
-	_, hasBlockStep := step["block"]
-	_, hasWaitStep := step["wait"]
-	if hasBlockStep || hasWaitStep {
+	_, isBlockStep := step["block"]
+	_, isWaitStep := step["wait"]
+	if isBlockStep || isWaitStep {
 		return step, nil
 	}
 

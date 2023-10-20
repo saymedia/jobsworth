@@ -83,10 +83,10 @@ if: 1 == 1
 		t.Error("lowerStep returned err:", err)
 	}
 	if !reflect.DeepEqual(step["env"], nil) {
-		t.Errorf("env should not be set for a wait step")
+		t.Errorf("env should not be set for a block step")
 	}
 	if !reflect.DeepEqual(step["agents"], nil) {
-		t.Errorf("agents should not be set for a wait step")
+		t.Errorf("agents should not be set for a block step")
 	}
 }
 

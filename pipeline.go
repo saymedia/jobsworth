@@ -197,12 +197,23 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) (Step, err
 		return nil, err
 	}
 
+	name, ok := step["name"].(string)
+	if !ok {
+		name = ""
+	}
+	step["name"] = strings.TrimSpace(fmt.Sprintf(":%s: %s", stepContext.EmojiName, name))
+
+	// Block and wait steps must not contains agents or env, so we return early here
+	_, isBlockStep := step["block"]
+	_, isWaitStep := step["wait"]
+	if isBlockStep || isWaitStep {
+		return step, nil
+	}
+
 	agents, ok := step["agents"].(map[interface{}]interface{})
 	if !ok {
 		agents = make(map[interface{}]interface{})
-		if _, exists := step["wait"]; !exists {
-			step["agents"] = agents
-		}
+		step["agents"] = agents
 	}
 	agents["queue"] = stepContext.QueueName
 	agents["environment"] = stepContext.EnvironmentName
@@ -210,21 +221,14 @@ func lowerStep(step Step, context *Context, stepContext *StepContext) (Step, err
 	env, ok := step["env"].(map[interface{}]interface{})
 	if !ok {
 		env = make(map[interface{}]interface{})
-		if _, exists := step["wait"]; !exists {
-			step["env"] = env
-		}
+		step["env"] = env
 	}
+
 	env["JOBSWORTH_CAUTIOUS"] = stepContext.CautiousStr()
 	env["JOBSWORTH_CODEBASE"] = context.CodebaseName()
 	env["JOBSWORTH_CODE_VERSION"] = context.CodeVersion
 	env["JOBSWORTH_SOURCE_GIT_COMMIT_ID"] = context.SourceGitCommitId
 	env["JOBSWORTH_ENVIRONMENT"] = stepContext.EnvironmentName
-
-	name, ok := step["name"].(string)
-	if !ok {
-		name = ""
-	}
-	step["name"] = strings.TrimSpace(fmt.Sprintf(":%s: %s", stepContext.EmojiName, name))
 
 	if step["command"] != nil && stepContext.PreventConcurrency &&
 		step["concurrency"] == nil && step["concurrency_group"] == nil {
